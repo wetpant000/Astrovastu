@@ -18,7 +18,7 @@ const transporter = nodemailer.createTransport({
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('../public'));
 
 const bookingSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -102,3 +102,6 @@ app.get('/consultations', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+// Export for Vercel
+module.exports = app;
