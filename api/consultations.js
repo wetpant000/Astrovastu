@@ -1,17 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-
-const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/astrovastu';
-
-const bookingSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true },
-  phone: { type: String, required: true },
-  service: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const Booking = mongoose.model('Booking', bookingSchema, 'consultation');
+const { getBookingModel } = require('../models');
 
 // Connect to MongoDB
 let isConnected = false;
@@ -49,6 +38,7 @@ module.exports = async (req, res) => {
 
   try {
     await connectToDatabase();
+    const Booking = getBookingModel();
     const consultations = await Booking.find().sort({ createdAt: -1 });
     return res.status(200).json({ consultations });
   } catch (error) {

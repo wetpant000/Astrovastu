@@ -1,26 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
-
-const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/astrovastu';
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-const bookingSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true },
-  phone: { type: String, required: true },
-  service: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const Booking = mongoose.model('Booking', bookingSchema, 'consultation');
+const { getBookingModel } = require('../models');
 
 // Connect to MongoDB
 let isConnected = false;
@@ -64,6 +45,7 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
+    const Booking = getBookingModel();
     const booking = new Booking({ name, email, phone, service });
     const saved = await booking.save();
 
