@@ -1,11 +1,7 @@
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 
-const app = express();
-const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/astrovastu';
 
 const transporter = nodemailer.createTransport({
@@ -15,10 +11,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS
   }
 });
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static('.'));
 
 const bookingSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -30,17 +22,43 @@ const bookingSchema = new mongoose.Schema({
 
 const Booking = mongoose.model('Booking', bookingSchema, 'consultation');
 
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log('MongoDB connected successfully');
-}).catch((err) => {
-  console.error('MongoDB connection error:', err);
-});
+// Connect to MongoDB
+let isConnected = false;
 
-app.post('/submit', async (req, res) => {
+async function connectToDatabase() {
+  if (isConnected) return;
   try {
+    await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    isConnected = true;
+    console.log('MongoDB connected successfully');
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    throw err;
+  }
+}
+
+module.exports = async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    await connectToDatabase();
+
     const { name, email, phone, service } = req.body;
     if (!name || !email || !phone || !service) {
       return res.status(400).json({ error: 'Required fields are missing' });
@@ -66,7 +84,7 @@ app.post('/submit', async (req, res) => {
     // Send notification email to author
     const authorMailOptions = {
       from: process.env.EMAIL_USER,
-      to: 'pritha90@gmail.com', // Author's email
+      to: 'pritha90@gmail.com',
       subject: 'New Consultation Booking',
       html: `
         <h2>New Client Booking</h2>
@@ -84,24 +102,7 @@ app.post('/submit', async (req, res) => {
 
     return res.status(201).json({ message: 'Booking saved and emails sent', booking: saved });
   } catch (error) {
-    console.error('POST /submit error', error);
+    console.error('POST /api/submit error', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-});
-
-app.get('/consultations', async (req, res) => {
-  try {
-    const consultations = await Booking.find().sort({ createdAt: -1 });
-    return res.status(200).json({ consultations });
-  } catch (error) {
-    console.error('GET /consultations error', error);
-    return res.status(500).json({ error: 'Failed to fetch consultations' });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
-
-// Export for Vercel
-module.exports = app;
+};
