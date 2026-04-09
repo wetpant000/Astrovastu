@@ -39,7 +39,7 @@ mongoose.connect(MONGODB_URI, {
   console.error('MongoDB connection error:', err);
 });
 
-app.post('/api/submit', async (req, res) => {
+app.post('/submit', async (req, res) => {
   try {
     const { name, email, phone, service } = req.body;
     if (!name || !email || !phone || !service) {
@@ -89,7 +89,7 @@ app.post('/api/submit', async (req, res) => {
   }
 });
 
-app.get('/api/consultations', async (req, res) => {
+app.get('/consultations', async (req, res) => {
   try {
     const consultations = await Booking.find().sort({ createdAt: -1 });
     return res.status(200).json({ consultations });
